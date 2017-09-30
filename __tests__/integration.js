@@ -2,6 +2,7 @@
 /* eslint max-len: 0 */
 
 import execa from 'execa';
+import {sh} from 'puka';
 import makeTemp from './_temp.js';
 import * as fs from '../src/util/fs.js';
 import * as misc from '../src/util/misc.js';
@@ -76,7 +77,7 @@ async function runYarn(args: Array<string> = [], options: Object = {}): Promise<
     options['extendEnv'] = false;
   }
   options['env']['FORCE_COLOR'] = 0;
-  const {stdout, stderr} = await execa(path.resolve(__dirname, '../bin/yarn'), args, options);
+  const {stdout, stderr} = await execa.shell(sh`${path.resolve(__dirname, '../bin/yarn')} ${args}`, options);
 
   return [stdout, stderr];
 }
@@ -265,6 +266,24 @@ if (process.platform !== 'win32') {
     );
   });
 }
+
+test('yarn run <script> <strings that need escaping>', async () => {
+  const cwd = await makeTemp();
+
+  await fs.writeFile(
+    path.join(cwd, 'package.json'),
+    JSON.stringify({
+      scripts: {stringify: `node -p "JSON.stringify(process.argv.slice(1))"`},
+    }),
+  );
+
+  const options = {cwd, env: {YARN_SILENT: 1}};
+
+  const trickyStrings = ['$PWD', '%CD%', '^', '!', '\\', '>', '<', '|', '&', "'", '"', '`', '  '];
+  const [stdout] = await runYarn(['stringify', ...trickyStrings], options);
+
+  expect(stdout.toString().trim()).toEqual(JSON.stringify(trickyStrings));
+});
 
 test('cache folder fallback', async () => {
   const cwd = await makeTemp();
