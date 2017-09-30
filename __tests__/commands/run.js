@@ -20,10 +20,6 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 90000;
 
 const {execCommand}: $FlowFixMe = require('../../src/util/execute-lifecycle-script');
 
-// Forgive the short variable name; it's used in a bunch of template literals
-// for expected quoted strings and making it longer hurts readability.
-const q = process.platform === 'win32' ? '"' : "'";
-
 beforeEach(() => execCommand.mockClear());
 
 const fixturesLoc = path.join(__dirname, '..', 'fixtures', 'run');
@@ -68,7 +64,7 @@ test('properly handles extra arguments and pre/post scripts', (): Promise<void> 
     const pkg = await fs.readJson(path.join(config.cwd, 'package.json'));
     const poststart = ['poststart', config, pkg.scripts.poststart, config.cwd];
     const prestart = ['prestart', config, pkg.scripts.prestart, config.cwd];
-    const start = ['start', config, pkg.scripts.start + ` ${q}--hello${q}`, config.cwd];
+    const start = ['start', config, pkg.scripts.start + ' --hello', config.cwd];
 
     expect(execCommand.mock.calls[0]).toEqual(prestart);
     expect(execCommand.mock.calls[1]).toEqual(start);
@@ -79,7 +75,7 @@ test('properly handles extra arguments and pre/post scripts', (): Promise<void> 
 test('properly handle bin scripts', (): Promise<void> => {
   return runRun(['cat-names'], {}, 'bin', config => {
     const script = path.join(config.cwd, 'node_modules', '.bin', 'cat-names');
-    const args = ['cat-names', config, `${q}${script}${q}`, config.cwd];
+    const args = ['cat-names', config, script, config.cwd];
 
     expect(execCommand).toBeCalledWith(...args);
   });
@@ -118,20 +114,21 @@ test('properly handle env command', (): Promise<void> => {
   });
 });
 
-test('retains string delimiters if args have spaces', (): Promise<void> => {
+test('adds string delimiters if args have spaces', (): Promise<void> => {
   return runRun(['cat-names', '--filter', 'cat names'], {}, 'bin', config => {
     const script = path.join(config.cwd, 'node_modules', '.bin', 'cat-names');
-    const args = ['cat-names', config, `${q}${script}${q} ${q}--filter${q} ${q}cat names${q}`, config.cwd];
+    const q = process.platform === 'win32' ? '"' : "'";
+    const args = ['cat-names', config, `${script} --filter ${q}cat names${q}`, config.cwd];
 
     expect(execCommand).toBeCalledWith(...args);
   });
 });
 
-test('retains quotes if args have spaces and quotes', (): Promise<void> => {
+test('adds quotes if args have spaces and quotes', (): Promise<void> => {
   return runRun(['cat-names', '--filter', '"cat names"'], {}, 'bin', config => {
     const script = path.join(config.cwd, 'node_modules', '.bin', 'cat-names');
     const quotedCatNames = process.platform === 'win32' ? '^"\\^"cat^ names\\^"^"' : `'"cat names"'`;
-    const args = ['cat-names', config, `${q}${script}${q} ${q}--filter${q} ${quotedCatNames}`, config.cwd];
+    const args = ['cat-names', config, `${script} --filter ${quotedCatNames}`, config.cwd];
 
     expect(execCommand).toBeCalledWith(...args);
   });

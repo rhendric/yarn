@@ -31,7 +31,7 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
       if (await fs.exists(binFolder)) {
         for (const name of await fs.readdir(binFolder)) {
           binCommands.push(name);
-          scripts[name] = quoteForShell(path.join(binFolder, name), true);
+          scripts[name] = quoteForShell(path.join(binFolder, name));
         }
       }
       visitedBinFolders.add(binFolder);
@@ -78,7 +78,7 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
       process.env.YARN_SILENT = '1';
       for (const [stage, cmd] of cmds) {
         // only tack on trailing arguments for default script, ignore for pre and post - #1595
-        const cmdWithArgs = stage === action ? sh`${unquoted(cmd)} "${args}"` : cmd;
+        const cmdWithArgs = stage === action ? sh`${unquoted(cmd)} ${args}` : cmd;
         await execCommand(stage, config, cmdWithArgs, config.cwd);
       }
     } else if (action === 'env') {
